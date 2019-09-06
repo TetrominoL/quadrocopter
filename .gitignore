@@ -1,3 +1,8 @@
+.vscode
+TODO
+*.pdf
+*.bin
+
 # Prerequisites
 *.d
 

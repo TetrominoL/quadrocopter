@@ -60,7 +60,7 @@ void mpu_calc_initvalues(uint8_t amount){
     /*
     Max for amount is 65535 because sensorvalues are 2^16 and avg-datatype is 2^32;
     */
-    avg_gyro_x = avg_gyro_x = avg_gyro_z = avg_acc_x = avg_acc_y = avg_acc_z = 0;
+    avg_gyro_x = avg_gyro_y = avg_gyro_z = avg_acc_x = avg_acc_y = avg_acc_z = 0;
     
     i=amount;
     while(i){
@@ -70,8 +70,6 @@ void mpu_calc_initvalues(uint8_t amount){
         avg_gyro_y += (int16_t)mpu_gyro_y_raw;
         avg_gyro_z += (int16_t)mpu_gyro_z_raw;
 
-        debug("%x %x%x\r\n",mpu_gyro_y_raw,avg_gyro_y);
-
         avg_acc_x += (int16_t)mpu_acc_x_raw;
         avg_acc_y += (int16_t)mpu_acc_y_raw;
         avg_acc_z += (int16_t)mpu_acc_z_raw;
@@ -79,17 +77,16 @@ void mpu_calc_initvalues(uint8_t amount){
         i--;
         _delay_ms(2);
     }
-    mpu_acc_corr_x = avg_acc_x / amount;
-    mpu_acc_corr_y = avg_acc_y / amount;
-    mpu_acc_corr_z = avg_acc_z / amount- ACC_VALUE_PER_G;
+    // mpu_acc_corr_x = avg_acc_x / amount;
+    // mpu_acc_corr_y = avg_acc_y / amount;
+    // mpu_acc_corr_z = avg_acc_z / amount- ACC_VALUE_PER_G;
+    mpu_acc_corr_x = 0;
+    mpu_acc_corr_y = 0;
+    mpu_acc_corr_z = 0;
     
-    debug("%x%x\r\n",avg_gyro_y);
     mpu_gyro_corr_x = avg_gyro_x / amount;
     mpu_gyro_corr_y = avg_gyro_y / amount;
     mpu_gyro_corr_z = avg_gyro_z / amount;
-
-    debug("%d %d %d %d %d %d\r\n",mpu_gyro_corr_x, mpu_gyro_corr_y, mpu_gyro_corr_z, mpu_acc_corr_x, mpu_acc_corr_y, mpu_acc_corr_z);
-    //while(1);
 }
 
 /**
@@ -106,7 +103,21 @@ uint8_t mpu_get_gyro_data(){
 }
 
 uint8_t mpu_get_acc_data(){
-    return mpu_burst_read_addr(0x3b, (uint8_t*)(&mpu_acc_val), 6);
+    uint8_t ret;
+    const float e=0.2;
+    int16_t save_acc_x = mpu_acc_x_raw;
+    int16_t save_acc_y = mpu_acc_y_raw;
+    int16_t save_acc_z = mpu_acc_z_raw;
+    ret = mpu_burst_read_addr(0x3b, (uint8_t*)(&mpu_acc_val), 6);
+    save_acc_x = (int16_t)((1-e)*(float)mpu_acc_x_raw + e*(float)save_acc_x + 0.5);
+    save_acc_y = (int16_t)((1-e)*(float)mpu_acc_y_raw + e*(float)save_acc_y + 0.5);
+    save_acc_z = (int16_t)((1-e)*(float)mpu_acc_z_raw + e*(float)save_acc_z + 0.5);
+    mpu_acc_val.x_h = (uint8_t)(save_acc_x>>8);
+    mpu_acc_val.x_l = (uint8_t)(save_acc_x>>0);
+    mpu_acc_val.y_h = (uint8_t)(save_acc_y>>8);
+    mpu_acc_val.y_l = (uint8_t)(save_acc_y>>0);
+    mpu_acc_val.z_h = (uint8_t)(save_acc_z>>8);
+    mpu_acc_val.z_l = (uint8_t)(save_acc_z>>0);
 }
 
 uint8_t mpu_update_all_sensor_data(){

@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <avr/io.h>
+#include <stdlib.h>
 
 void usart_init(){
     UCSR0B=0x18;    //9600-Baud
@@ -40,12 +41,17 @@ void usart_print(const char* str, ...){
             str++;
         }else if (*str == '%' && *(str+1) == 'u') {
             unsigned int d = va_arg(args, unsigned int);
-            itoa(d,c,10);
+            utoa(d,c,10);
             usart_putstr(c);
             str++;
         }else if (*str == '%' && *(str+1) == 'x') {
             unsigned int d = va_arg(args, unsigned int);
-            itoa(d,c,16);
+            utoa(d,c,16);
+            usart_putstr(c);
+            str++;
+        }else if (*str == '%' && *(str+1) == 'f') {
+            double d = va_arg(args, double);
+            dtostrf(d, 4, 3, c);
             usart_putstr(c);
             str++;
         }else{

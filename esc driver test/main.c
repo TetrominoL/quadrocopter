@@ -15,10 +15,11 @@ int main(void){
 
     uint8_t i=0;
     esc_set_speed(0,50);
+    esc_set_speed_all(50);
     while(1){
         if(++i > 100)
             i=0;
-        esc_set_speed(0,i);
+        esc_set_speed_all(i);
         _delay_ms(300);
         
     }
