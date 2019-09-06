@@ -13,12 +13,22 @@
 #include "timer.h"
 #include "esc.h"
 #include "uart_protocoll.h"
+#include "pid.h"
 
 //ca. 50days, so it will be enough
 volatile uint32_t timestamp_ms = 0;
 
 #define MAX_MOTOR_SPEED     100
+#define MIN_MOTOR_SPEED     1
 #define MAX_ANGLE           2.0
+
+#define M1_KI       0
+#define M1_KP       1.3
+#define M1_KD       0
+
+#define M3_KI       0
+#define M3_KP       1.3
+#define M3_KD       0
 
 int16_t update_motor_speed = 1;
 int16_t motor_0_speed;
@@ -28,6 +38,10 @@ int16_t motor_1_speed;
 
 double angle_x_target = 0;
 double angle_y_target = 0;
+
+// Structure to strore PID data and pointer to PID structure
+pid_t pid_m1;
+pid_t pid_m3;
 
 void wait_ms(uint16_t time){
     uint32_t start_ms = timestamp_ms;
@@ -56,7 +70,10 @@ uint8_t flight_control(process_hdl_t *p){
 
     motor_1_speed = update_motor_speed - (int) (P_REGULAR*(_angle_y - angle_y_target)+0.5);
     motor_3_speed = update_motor_speed + P_REGULAR*(_angle_y - angle_y_target)+0.5;
-    
+
+    motor_1_speed = pid_run(&pid_m1, angle_y_target, -_angle_y, update_motor_speed);
+    motor_3_speed = pid_run(&pid_m3, angle_y_target, _angle_y, update_motor_speed);
+
     if(motor_0_speed <= 0)
         motor_0_speed = 1;
     if(motor_1_speed <= 0)
@@ -70,6 +87,8 @@ uint8_t flight_control(process_hdl_t *p){
     esc_set_speed(1,motor_1_speed);
     //esc_set_speed(2,motor_2_speed);
     esc_set_speed(3,motor_3_speed);
+
+    
     return 0;
 }
 
@@ -87,6 +106,8 @@ uint8_t print_angle(process_hdl_t *p){
     //debug("Y-TARGET: 0.1*%d\r\n",(int) (angle_y_target*10));
     debug("Y-ANGLE: 0.1*%d\r\n",(int) (_angle_y*10));
     debug("X-ANGLE: 0.1*%d\r\n",(int) (_angle_x*10));
+    int16_t h = (int16_t)(-_angle_y - angle_y_target);
+    debug("E %d\r\n", h);
     debug("M0: %d\r\n",motor_0_speed);
     debug("M1: %d\r\n",motor_1_speed);
     debug("M2: %d\r\n",motor_2_speed);
@@ -231,6 +252,15 @@ uint8_t process_rx_uart(process_hdl_t *p){
             case DECREASE_P:
                 _p_regular -= 0.1;
             break;
+            case SET_P:{
+                int i=0;
+                double kp = (((uint16_t)(rxbuf[3]))<<8)&0xff00 | rxbuf[4]&0xff;
+                kp += ((double)((int16_t)((rxbuf[5]<<8)&0xff00 | rxbuf[6]&0xff)))/10000;
+
+                debug("P: %d %d\r\n",(int)(kp*10), rxbuf[4]&0xff);
+                pid_set_kp(&pid_m1, kp);
+                pid_set_kp(&pid_m3, kp);
+            }break;
             //default:
 
         }
@@ -250,6 +280,21 @@ int main(void){
     usart_init();
     PORTD |= (1<<7);
     debug("serial interface ready\r\n");
+
+    /*** configre PID ***/
+    pid_init(&pid_m1);
+    pid_set_ki(&pid_m1, M1_KI);
+    pid_set_kp(&pid_m1, M1_KP);
+    pid_set_kd(&pid_m1, M1_KD);
+    pid_set_out_min(&pid_m1, MIN_MOTOR_SPEED);
+    pid_set_out_max(&pid_m1, MAX_MOTOR_SPEED);
+
+    pid_init(&pid_m3);
+    pid_set_ki(&pid_m3, M3_KI);
+    pid_set_kp(&pid_m3, M3_KP);
+    pid_set_kd(&pid_m3, M3_KD);
+    pid_set_out_min(&pid_m3, MIN_MOTOR_SPEED);
+    pid_set_out_max(&pid_m3, MAX_MOTOR_SPEED);
 
 
     /*** configure serial interface END ***/
