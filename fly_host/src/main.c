@@ -57,6 +57,7 @@ int main(int argc,char** argv)
     int errVal;
     char buf[0xff];
     char ch;
+    uint8_t param[100];
     static char init;
     struct termios new_kbd_mode; 
 
@@ -111,11 +112,13 @@ int main(int argc,char** argv)
             switch (c){
                 case 'w':
                     printf("->increase speed\n");
-                    size = packPacket(buf, 0xff, INCREASE_SPEED, 2);
+                    param[0] = 2;
+                    size = packPacket(buf, 0xff, INCREASE_SPEED, param);
                 break;
                 case 's':
                     printf("->decrease speed\n");
-                    size = packPacket(buf, 0xff, DECREASE_SPEED, 2);
+                    param[0] = 2;
+                    size = packPacket(buf, 0xff, DECREASE_SPEED, param);
                 break;
                 case 'a':
                 break;
@@ -123,40 +126,83 @@ int main(int argc,char** argv)
                 break;
                 case 0x20:
                     printf("->STOP!\n");
-                    size = packPacket(buf, 0xff, STOP_ALL, 0);
+                    size = packPacket(buf, 0xff, STOP_ALL, NULL);
                 break;
                 case 'c':
                     printf("CALIB\n");
-                    size = packPacket(buf, 0xff, CALIB_ESC, 0);
+                    size = packPacket(buf, 0xff, CALIB_ESC, NULL);
                 break;
                 case 'i':
                     printf("->increase pitch\n");
-                    size = packPacket(buf, 0xff, INCREASE_PITCH, 2);
+                    param[0] = 2;
+                    size = packPacket(buf, 0xff, INCREASE_PITCH, param);
                 break;
                 case 'k':
                     printf("->decrease pitch\n");
-                    size = packPacket(buf, 0xff, DECREASE_PITCH, 2);
+                    param[0] = 2;
+                    size = packPacket(buf, 0xff, DECREASE_PITCH, param);
                 break;
                 case 'j':
                     printf("->increase roll\n");
-                    size = packPacket(buf, 0xff, INCREASE_ROLL, 2);
+                    param[0] = 2;
+                    size = packPacket(buf, 0xff, INCREASE_ROLL, param);
                 break;
                 case 'l':
                     printf("->decrease roll\n");
-                    size = packPacket(buf, 0xff, DECREASE_ROLL, 2);
+                    param[0] = 2;
+                    size = packPacket(buf, 0xff, DECREASE_ROLL, param);
                 break;
                 case 'r':
                     printf("->reset angles\n");
-                    size = packPacket(buf, 0xff, RESET_ANGLES, 0);
+                    size = packPacket(buf, 0xff, RESET_ANGLES, NULL);
                 break;
                 case 'y':
                     printf("->increase p\n");
-                    size = packPacket(buf, 0xff, INCREASE_P, 0);
+                    param[0] = 1;
+                    size = packPacket(buf, 0xff, INCREASE_P, param);
                 break;
                 case 'x':
                     printf("->decrease p\n");
-                    size = packPacket(buf, 0xff, DECREASE_P, 0);
+                    param[0] = 1;
+                    size = packPacket(buf, 0xff, DECREASE_P, param);
                 break;
+                case 'p':{
+                    printf("->set Kp\n");
+                    printf("Enter values with max 10 characters and press Enter\n");
+                    uint8_t v[11];
+                    uint8_t cnt=0;
+                    int n = 0;
+                    int16_t a;
+                    uint16_t b;
+                    while(cnt < 10 && n != 10){
+                        if((n = getchar()) != EOF && n != 10){
+                            printf("n: %d; EOF: %d\r\n",n, EOF);
+                            v[cnt] = n;
+                            printf("VU: %d\r\n", v[cnt]);
+                            cnt++;
+                        }
+                    }
+                    v[cnt]='\0';
+                    float value = atof(v);
+                    a = (int16_t)value;
+                    value = value - (int16_t) value;
+                    if(value < 0)
+                        value = -value;
+                    b = (uint16_t)(value*10000 + 0.5);
+                    printf("%d | %d\r\n",a,b);
+                    v[0] = (a>>8) & 0xff;
+                    v[1] = a & 0xff;
+                    v[2] = (b>>8) & 0xff;
+                    v[3] = b & 0xff;
+
+
+                    int bla=0;
+                    for(;bla<4;bla++){
+                        printf("BLA: %d\n", v[bla]);
+                    }
+
+                    size = packPacket(buf, 0xff, SET_P, v);
+                }break;
             }
             //printf("SENDE:%d\n", size);
             struct timeval timeout;
