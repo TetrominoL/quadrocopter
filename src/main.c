@@ -40,7 +40,9 @@ double angle_x_target = 0;
 double angle_y_target = 0;
 
 // Structure to strore PID data and pointer to PID structure
+pid_t pid_m0;
 pid_t pid_m1;
+pid_t pid_m2;
 pid_t pid_m3;
 
 void wait_ms(uint16_t time){
@@ -98,22 +100,19 @@ uint8_t angle_calc_callback(process_hdl_t *p){
 }
 
 uint8_t print_angle(process_hdl_t *p){
-    //debug("ANGLE: %f, %f, %f\r\n",_angle_x,_angle_y,_angle_z);
+    debug("X-TARGET: %f\r\n", angle_x_target);
+    debug("Y-TARGET: %f\r\n", angle_y_target);
+    debug("Y-ANGLE: %f\r\n", _angle_y);
+    debug("X-ANGLE: %f\r\n", _angle_x);
 
-    int ms = (int)update_motor_speed;
-    //debug("MOTORSPEED: %d\r\n",ms);
-    //debug("X-TARGET: 0.1*%d\r\n",(int) (angle_x_target*10));
-    //debug("Y-TARGET: 0.1*%d\r\n",(int) (angle_y_target*10));
-    debug("Y-ANGLE: 0.1*%d\r\n",(int) (_angle_y*10));
-    debug("X-ANGLE: 0.1*%d\r\n",(int) (_angle_x*10));
-    int16_t h = (int16_t)(-_angle_y - angle_y_target);
-    debug("E %d\r\n", h);
     debug("M0: %d\r\n",motor_0_speed);
     debug("M1: %d\r\n",motor_1_speed);
     debug("M2: %d\r\n",motor_2_speed);
     debug("M3: %d\r\n",motor_3_speed);
 
-    //debug("P: 0.1*%d\r\n",(int) (_p_regular*10));
+    debug("KP: %f\r\n", pid_m0.kp);
+    debug("KD: %f\r\n", pid_m0.kd);
+    debug("KI: %f\r\n", pid_m0.ki);
     return 0;
 }
 
@@ -252,14 +251,29 @@ uint8_t process_rx_uart(process_hdl_t *p){
             case DECREASE_P:
                 _p_regular -= 0.1;
             break;
-            case SET_P:{
-                int i=0;
+            case SET_KP:{
                 double kp = (((uint16_t)(rxbuf[3]))<<8)&0xff00 | rxbuf[4]&0xff;
                 kp += ((double)((int16_t)((rxbuf[5]<<8)&0xff00 | rxbuf[6]&0xff)))/10000;
-
-                debug("P: %d %d\r\n",(int)(kp*10), rxbuf[4]&0xff);
+                pid_set_kp(&pid_m0, kp);
                 pid_set_kp(&pid_m1, kp);
+                pid_set_kp(&pid_m2, kp);
                 pid_set_kp(&pid_m3, kp);
+            }break;
+            case SET_KD:{
+                double kd = (((uint16_t)(rxbuf[3]))<<8)&0xff00 | rxbuf[4]&0xff;
+                kd += ((double)((int16_t)((rxbuf[5]<<8)&0xff00 | rxbuf[6]&0xff)))/10000;
+                pid_set_ki(&pid_m0, kd);
+                pid_set_ki(&pid_m1, kd);
+                pid_set_ki(&pid_m2, kd);
+                pid_set_ki(&pid_m3, kd);
+            }break;
+            case SET_KI:{
+                double ki = (((uint16_t)(rxbuf[3]))<<8)&0xff00 | rxbuf[4]&0xff;
+                ki += ((double)((int16_t)((rxbuf[5]<<8)&0xff00 | rxbuf[6]&0xff)))/10000;
+                pid_set_ki(&pid_m0, ki);
+                pid_set_ki(&pid_m1, ki);
+                pid_set_ki(&pid_m2, ki);
+                pid_set_ki(&pid_m3, ki);
             }break;
             //default:
 
