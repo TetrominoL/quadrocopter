@@ -65,6 +65,9 @@ typedef struct{
 #define RESET_ANGLES        0x12
 #define INCREASE_P          0x13
 #define DECREASE_P          0x14
+#define SET_KP              0x15
+#define SET_KI              0x16
+#define SET_KD              0x17
 
 uint8_t calcCrc(char *buf, uint8_t size){
     uint8_t crc = START_BYTE;
@@ -78,10 +81,11 @@ uint8_t calcCrc(char *buf, uint8_t size){
     return crc;
 }
 
-uint8_t packPacket(uint8_t *buf, uint8_t max_size, uint8_t cmd, uint8_t value){
+uint8_t packPacket(uint8_t *buf, uint8_t max_size, uint8_t cmd, uint8_t *value){
     uint8_t size;
     buf[0] = START_BYTE;
     buf[1] = cmd;
+    uint8_t i;
 
     switch (cmd){
         case INCREASE_SPEED:
@@ -92,21 +96,36 @@ uint8_t packPacket(uint8_t *buf, uint8_t max_size, uint8_t cmd, uint8_t value){
         case DECREASE_ROLL:
         case INCREASE_P:
         case DECREASE_P:
-            size = 5;
-            buf[2] = size -3;
-            buf[3] = value;
+            size = 1+4;
         break;
         case STOP_ALL:
         case RESET_ANGLES:
         case CALIB_ESC:
-            size = 4;
-            buf[2] = size -3;
+            size = 0+4;
+        break;
+        case SET_KP:
+        case SET_KI:
+        case SET_KD:
+            size = 4+4;
         break;
     }
     if(size > max_size)
         return 0;
+    
+    buf[2] = size -3;
+
+    for(i=3; i< size-1; i++){
+        buf[i] = value[i-3];
+        printf("B: %d\r\n",buf[i]);
+    }
 
     buf[size -1] = calcCrc(buf, size);
+
+    printf("PKG: ");
+    for(i=0; i< size; i++){
+        printf("%d ",buf[i]);
+    }
+    printf("\r\n");
     return size;
 }
 
@@ -142,6 +161,9 @@ uint8_t checkPacket(uint8_t *buf){
         case RESET_ANGLES:
         case INCREASE_P:
         case DECREASE_P:
+        case SET_KP:
+        case SET_KI:
+        case SET_KD:
             
         break;
         default:
