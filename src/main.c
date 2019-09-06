@@ -22,9 +22,17 @@ volatile uint32_t timestamp_ms = 0;
 #define MIN_MOTOR_SPEED     1
 #define MAX_ANGLE           2.0
 
+#define M0_KI       0
+#define M0_KP       1.3
+#define M0_KD       0
+
 #define M1_KI       0
 #define M1_KP       1.3
 #define M1_KD       0
+
+#define M2_KI       0
+#define M2_KP       1.3
+#define M2_KD       0
 
 #define M3_KI       0
 #define M3_KP       1.3
@@ -296,12 +304,26 @@ int main(void){
     debug("serial interface ready\r\n");
 
     /*** configre PID ***/
+    pid_init(&pid_m0);
+    pid_set_ki(&pid_m0, M0_KI);
+    pid_set_kp(&pid_m0, M0_KP);
+    pid_set_kd(&pid_m0, M0_KD);
+    pid_set_out_min(&pid_m0, MIN_MOTOR_SPEED);
+    pid_set_out_max(&pid_m0, MAX_MOTOR_SPEED);
+
     pid_init(&pid_m1);
     pid_set_ki(&pid_m1, M1_KI);
     pid_set_kp(&pid_m1, M1_KP);
     pid_set_kd(&pid_m1, M1_KD);
     pid_set_out_min(&pid_m1, MIN_MOTOR_SPEED);
     pid_set_out_max(&pid_m1, MAX_MOTOR_SPEED);
+
+    pid_init(&pid_m2);
+    pid_set_ki(&pid_m2, M2_KI);
+    pid_set_kp(&pid_m2, M2_KP);
+    pid_set_kd(&pid_m2, M2_KD);
+    pid_set_out_min(&pid_m2, MIN_MOTOR_SPEED);
+    pid_set_out_max(&pid_m2, MAX_MOTOR_SPEED);
 
     pid_init(&pid_m3);
     pid_set_ki(&pid_m3, M3_KI);
