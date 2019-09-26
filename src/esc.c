@@ -16,12 +16,12 @@
 #define MIN_SPEED 50    // =>20us*50 = 1ms
 #define MAX_SPEED 100   // =>50us*100 = 2ms
 
-#define MOTOR_OUT_PORT  PORTC
+#define MOTOR_OUT_PORT  PORTD
 #define MOTOR_OUT_DDR   DDRD
-#define MOTOR_BP_1      0
-#define MOTOR_BP_2      1
-#define MOTOR_BP_3      2
-#define MOTOR_BP_4      3
+#define MOTOR_BP_1      4
+#define MOTOR_BP_2      5
+#define MOTOR_BP_3      6
+#define MOTOR_BP_4      7
 
 typedef struct{
     volatile uint8_t speed;
@@ -58,7 +58,7 @@ void esc_init(){
     OCR0A   = 0x04; //bei 4us => 20us
     TCCR0B  = 0x03; //64-Prescaler => 4us*/
 
-    DDRC |= motors[3].mask | motors[2].mask | motors[1].mask | motors[0].mask;   //PD0 = Motor0; PD1 = Motor1 usw..
+    MOTOR_OUT_DDR |= motors[3].mask | motors[2].mask | motors[1].mask | motors[0].mask;   //PD0 = Motor0; PD1 = Motor1 usw..
     MOTOR_OUT_PORT &= ~(motors[3].mask | motors[2].mask | motors[1].mask | motors[0].mask);
 }
 

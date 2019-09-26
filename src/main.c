@@ -14,6 +14,7 @@
 #include "esc.h"
 #include "uart_protocoll.h"
 #include "pid.h"
+#include "adc.h"
 
 //ca. 50days, so it will be enough
 volatile uint32_t timestamp_ms = 0;
@@ -46,6 +47,8 @@ int16_t motor_1_speed;
 
 double angle_x_target = 0;
 double angle_y_target = 0;
+
+uint16_t battery_status = 0;
 
 // Structure to strore PID data and pointer to PID structure
 pid_t pid_m0;
@@ -107,6 +110,28 @@ uint8_t angle_calc_callback(process_hdl_t *p){
     return 0;
 }
 
+uint8_t battery_check(process_hdl_t *p){
+    int32_t diff;
+    uint16_t v;
+
+    if(adcBusy()){
+        v = adcGetResult();
+        battery_status = battery_status*0.8 + v*0.2;
+        adcStart();
+    }
+
+    //Werte für 3Zellen Akku mit 11,1V Nennspannung ausgelegt! Abschaltung bei ca. 9,3V Akkuspannung
+    if(battery_status < 300){
+        debug("LOW POWER!!");
+    }else if(battery_status <=260){
+        debug("EMERGENCY STOP!");
+        cli();
+        while(1);
+    }
+
+    return 0;
+}
+
 uint8_t print_angle(process_hdl_t *p){
     debug("X-TARGET: %f\r\n", angle_x_target);
     debug("Y-TARGET: %f\r\n", angle_y_target);
@@ -121,6 +146,8 @@ uint8_t print_angle(process_hdl_t *p){
     debug("KP: %f\r\n", pid_m0.kp);
     debug("KD: %f\r\n", pid_m0.kd);
     debug("KI: %f\r\n", pid_m0.ki);
+
+    debug("Battery: %d\r\n", battery_status);
     return 0;
 }
 
@@ -295,12 +322,16 @@ int main(void){
     process_hdl_t *p;
     uint32_t time_tmp;
 
-    DDRD |= 0b11000000; 
-    PORTD &= ~(1<<7 | 1<<6);
+    //must be a high value, otherwise on start-up the battery check would fail
+    battery_status = 1023;
+
+    //DDRD |= 0b11000000; 
+    //PORTD &= ~(1<<7 | 1<<6);
+
+    //DDRC &= ~(1<<0);
 
     /*** configure serial interface ***/
     usart_init();
-    PORTD |= (1<<7);
     debug("serial interface ready\r\n");
 
     /*** configre PID ***/
@@ -361,6 +392,15 @@ int main(void){
     mpu_init();
     PORTD |= (1<<6);
     angle_init();
+
+    /*** configure ADC ***/
+    adcSelectPrescaler(PRESC_128);
+    adcSelectChannel(CHANNEL_ADC0);
+    adcVoltageReferenceSelection(AVCC);
+    //adcSetMode(MODE_FREE_RUNNING);
+    adcEnable();
+    adcStart();
+    
     
     /*** configure mpu6050  and gyrostuffEND***/
     //enable global interrupts
@@ -377,6 +417,7 @@ int main(void){
     process_add(PROCESS_PRIOR_HIGH, 10, mpu_update_all_sensor_data);
     process_add(PROCESS_PRIOR_MED, 10, angle_calc_callback);
     process_add(PROCESS_PRIOR_LOW, 10, flight_control);
+    process_add(PROCESS_PRIOR_LOW, 500, battery_check);
     process_add(PROCESS_PRIOR_PETTY, 1000, print_angle);
     process_add(PROCESS_PRIOR_LOW, 100, process_rx_uart);
     process_add(PROCESS_PRIOR_PETTY, 2000, print_debug_time);

@@ -51,6 +51,29 @@ uint8_t check_for_new_data(int fd, str_ringbuf_t *rbuf){
     return 0;
 }
 
+int enter_values(uint8_t maxAmount, char *buf){
+    printf("Enter value with max %d characters and press Enter\n", maxAmount);
+
+    uint8_t cnt=0;
+    int n=0;
+
+    while(cnt < maxAmount && n != 10){
+        if((n = getchar()) != EOF && n != 10){
+            buf[cnt] = n;
+            cnt++;
+        }
+    }
+    return cnt;
+}
+
+void pack_float_for_transmit(float f, int16_t *b, uint16_t *a){
+    a = (int16_t)f;
+    f = f - (int16_t) f;
+    if(f < 0)
+        f = -f;
+    *b = (uint16_t)(f*10000 + 0.5);
+}
+
 int main(int argc,char** argv)
 {
     int c;
@@ -166,42 +189,62 @@ int main(int argc,char** argv)
                     param[0] = 1;
                     size = packPacket(buf, 0xff, DECREASE_P, param);
                 break;
-                case 'p':{
+                case '1':{
                     printf("->set Kp\n");
-                    printf("Enter values with max 10 characters and press Enter\n");
                     uint8_t v[11];
-                    uint8_t cnt=0;
-                    int n = 0;
+                    uint8_t cnt;
                     int16_t a;
                     uint16_t b;
-                    while(cnt < 10 && n != 10){
-                        if((n = getchar()) != EOF && n != 10){
-                            printf("n: %d; EOF: %d\r\n",n, EOF);
-                            v[cnt] = n;
-                            printf("VU: %d\r\n", v[cnt]);
-                            cnt++;
-                        }
-                    }
+                    cnt = enter_values(10, v);
+                    
                     v[cnt]='\0';
                     float value = atof(v);
-                    a = (int16_t)value;
-                    value = value - (int16_t) value;
-                    if(value < 0)
-                        value = -value;
-                    b = (uint16_t)(value*10000 + 0.5);
-                    printf("%d | %d\r\n",a,b);
+
+                    pack_float_for_transmit(value,&a,&b);
+
                     v[0] = (a>>8) & 0xff;
                     v[1] = a & 0xff;
                     v[2] = (b>>8) & 0xff;
                     v[3] = b & 0xff;
+                    size = packPacket(buf, 0xff, SET_KP, v);
+                }break;
+                case '2':{
+                    printf("->set Ki\n");
+                    uint8_t v[11];
+                    uint8_t cnt;
+                    int16_t a;
+                    uint16_t b;
+                    cnt = enter_values(10, v);
+                    
+                    v[cnt]='\0';
+                    float value = atof(v);
 
+                    pack_float_for_transmit(value,&a,&b);
 
-                    int bla=0;
-                    for(;bla<4;bla++){
-                        printf("BLA: %d\n", v[bla]);
-                    }
+                    v[0] = (a>>8) & 0xff;
+                    v[1] = a & 0xff;
+                    v[2] = (b>>8) & 0xff;
+                    v[3] = b & 0xff;
+                    size = packPacket(buf, 0xff, SET_KI, v);
+                }break;
+                case '3':{
+                    printf("->set Kd\n");
+                    uint8_t v[11];
+                    uint8_t cnt;
+                    int16_t a;
+                    uint16_t b;
+                    cnt = enter_values(10, v);
+                    
+                    v[cnt]='\0';
+                    float value = atof(v);
 
-                    size = packPacket(buf, 0xff, SET_P, v);
+                    pack_float_for_transmit(value,&a,&b);
+
+                    v[0] = (a>>8) & 0xff;
+                    v[1] = a & 0xff;
+                    v[2] = (b>>8) & 0xff;
+                    v[3] = b & 0xff;
+                    size = packPacket(buf, 0xff, SET_KD, v);
                 }break;
             }
             //printf("SENDE:%d\n", size);
