@@ -113,6 +113,7 @@ uint8_t angle_calc_callback(process_hdl_t *p){
 uint8_t battery_check(process_hdl_t *p){
     int32_t diff;
     uint16_t v;
+    static uint8_t init = 1;
 
     if(adcBusy()){
         v = adcGetResult();
@@ -121,9 +122,12 @@ uint8_t battery_check(process_hdl_t *p){
     }
 
     //Werte für 3Zellen Akku mit 11,1V Nennspannung ausgelegt! Abschaltung bei ca. 9,3V Akkuspannung
-    if(battery_status < 300){
+    if(battery_status > 570 && init)
+        init = 0;
+    if(battery_status < 612){
         debug("LOW POWER!!");
-    }else if(battery_status <=260){
+    }
+    if(battery_status <=570 && !init){
         debug("EMERGENCY STOP!");
         cli();
         while(1);
@@ -144,8 +148,8 @@ uint8_t print_angle(process_hdl_t *p){
     debug("M3: %d\r\n",motor_3_speed);
 
     debug("KP: %f\r\n", pid_m0.kp);
-    debug("KD: %f\r\n", pid_m0.kd);
     debug("KI: %f\r\n", pid_m0.ki);
+    debug("KD: %f\r\n", pid_m0.kd);
 
     debug("Battery: %d\r\n", battery_status);
     return 0;
@@ -287,8 +291,10 @@ uint8_t process_rx_uart(process_hdl_t *p){
                 _p_regular -= 0.1;
             break;
             case SET_KP:{
+                debug("set KP\r\n");
                 double kp = (((uint16_t)(rxbuf[3]))<<8)&0xff00 | rxbuf[4]&0xff;
                 kp += ((double)((int16_t)((rxbuf[5]<<8)&0xff00 | rxbuf[6]&0xff)))/10000;
+                debug("KP: %f\r\n", kp);
                 pid_set_kp(&pid_m0, kp);
                 pid_set_kp(&pid_m1, kp);
                 pid_set_kp(&pid_m2, kp);
@@ -297,10 +303,10 @@ uint8_t process_rx_uart(process_hdl_t *p){
             case SET_KD:{
                 double kd = (((uint16_t)(rxbuf[3]))<<8)&0xff00 | rxbuf[4]&0xff;
                 kd += ((double)((int16_t)((rxbuf[5]<<8)&0xff00 | rxbuf[6]&0xff)))/10000;
-                pid_set_ki(&pid_m0, kd);
-                pid_set_ki(&pid_m1, kd);
-                pid_set_ki(&pid_m2, kd);
-                pid_set_ki(&pid_m3, kd);
+                pid_set_kd(&pid_m0, kd);
+                pid_set_kd(&pid_m1, kd);
+                pid_set_kd(&pid_m2, kd);
+                pid_set_kd(&pid_m3, kd);
             }break;
             case SET_KI:{
                 double ki = (((uint16_t)(rxbuf[3]))<<8)&0xff00 | rxbuf[4]&0xff;
@@ -321,9 +327,6 @@ int main(void){
     char str_buf[512];
     process_hdl_t *p;
     uint32_t time_tmp;
-
-    //must be a high value, otherwise on start-up the battery check would fail
-    battery_status = 1023;
 
     //DDRD |= 0b11000000; 
     //PORTD &= ~(1<<7 | 1<<6);

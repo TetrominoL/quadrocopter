@@ -64,7 +64,7 @@ void esc_init(){
 
 void esc_calib(){
     esc_set_speed_all_abs(MAX_SPEED);
-    timeout_cnt = 50000 * 5; //=> 5sec
+    timeout_cnt = 50000 * 7; //=> 5sec
     while(timeout_cnt);
     esc_set_speed_abs(0,MIN_SPEED);
     timeout_cnt = 50000 * 2; //=> 2sec

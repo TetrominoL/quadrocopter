@@ -66,8 +66,8 @@ int enter_values(uint8_t maxAmount, char *buf){
     return cnt;
 }
 
-void pack_float_for_transmit(float f, int16_t *b, uint16_t *a){
-    a = (int16_t)f;
+void pack_float_for_transmit(float f, int16_t *a, uint16_t *b){
+    *a = (int16_t)f;
     f = f - (int16_t) f;
     if(f < 0)
         f = -f;
@@ -199,6 +199,7 @@ int main(int argc,char** argv)
                     
                     v[cnt]='\0';
                     float value = atof(v);
+                    printf("Value: %f\n", value);
 
                     pack_float_for_transmit(value,&a,&b);
 
@@ -207,6 +208,10 @@ int main(int argc,char** argv)
                     v[2] = (b>>8) & 0xff;
                     v[3] = b & 0xff;
                     size = packPacket(buf, 0xff, SET_KP, v);
+                    printf("Packet: ");
+                    for(int i = 0; i<size; i++)
+                        printf("%x ", buf);
+                    printf("\n");
                 }break;
                 case '2':{
                     printf("->set Ki\n");
