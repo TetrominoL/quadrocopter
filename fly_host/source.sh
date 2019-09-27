@@ -1,0 +1,1 @@
+export PATH=/home/linux/bin:/home/linux/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:~/Universitaet/master/seminar-projekt/quadrocopter/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/
