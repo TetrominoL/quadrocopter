@@ -24,19 +24,19 @@ volatile uint32_t timestamp_ms = 0;
 #define MAX_ANGLE           2.0
 
 #define M0_KI       0
-#define M0_KP       1.3
+#define M0_KP       0.8
 #define M0_KD       0
 
 #define M1_KI       0
-#define M1_KP       1.3
+#define M1_KP       0.8
 #define M1_KD       0
 
 #define M2_KI       0
-#define M2_KP       1.3
+#define M2_KP       0.8
 #define M2_KD       0
 
 #define M3_KI       0
-#define M3_KP       1.3
+#define M3_KP       0.8
 #define M3_KD       0
 
 int16_t update_motor_speed = 1;
