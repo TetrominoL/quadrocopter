@@ -11,7 +11,7 @@ GLOBAL_DEFINES= -DAVR -DDEBUG=1 -DF_CPU=16000000UL
 
 PROGDEVICE=/dev/ttyUSB0
 
-OBJ=main.o twi.o mpu6050.o usart.o angle_calc.o timer.o process.o esc.o pid.o
+OBJ=main.o twi.o mpu6050.o usart.o angle_calc.o timer.o process.o esc.o pid.o adc.o
 
 CFLAGS=-mmcu=${MCU} ${OPTIMAZATION_FLAGS} ${GLOBAL_DEFINES} -std=c99
 LDFLAGS=-Wall -Wl,-u,vfprintf -lprintf_flt -lm
